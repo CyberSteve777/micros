@@ -4,7 +4,7 @@ from .database import init_db
 app = FastAPI(
     title="Users Service",
     description="Микросервис для управления пользователями и аутентификацией",
-    version="1.0.0"
+    version="1.1.0"
 )
 
 @app.on_event("startup")
