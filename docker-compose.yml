@@ -13,6 +13,9 @@ services:
     volumes:
       - reviews_data:/var/lib/postgresql/data
       - ./init-databases.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - default
+      - monitoring
 
   users-db:
     image: postgres:13
@@ -24,6 +27,9 @@ services:
       - "5433:5432"
     volumes:
       - users_data:/var/lib/postgresql/data
+    networks:
+      - default
+      - monitoring
 
   bonuses-db:
     image: postgres:13
@@ -78,6 +84,9 @@ services:
       - DATABASE_URL=postgresql://cinema_user:cinema_password@reviews-db:5432/reviews_db
     depends_on:
       - reviews-db
+    networks:
+      - default
+      - monitoring
 
   users-service:
     build: users_service
@@ -88,9 +97,12 @@ services:
       - JWT_SECRET=your-super-secret-jwt-key-2024
     depends_on:
       - users-db
+    networks:
+      - default
+      - monitoring
 
   bonuses-service:
-    build: ./bonuses-service
+    build: ./bonuses_service
     ports:
       - "8003:8000"
     environment:
@@ -99,7 +111,7 @@ services:
       - bonuses-db
 
   payments-service:
-    build: payments_service
+    build: ./payments_service
     ports:
       - "8004:8000"
     environment:
@@ -108,7 +120,7 @@ services:
       - payments-db
 
   notifications-service:
-    build: notifications_service
+    build: ./notifications_service
     ports:
       - "8005:8000"
     environment:
@@ -117,13 +129,78 @@ services:
       - notifications-db
 
   movies-service:
-    build: ./movies-service
+    build: ./movies_service
     ports:
       - "8006:8000"
     environment:
       - DATABASE_URL=postgresql://cinema_user:cinema_password@movies-db:5432/movies_db
     depends_on:
       - movies-db
+
+  # Мониторинг
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cinema-prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cinema-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - monitoring
+
+  loki:
+    image: grafana/loki:latest
+    container_name: cinema-loki
+    ports:
+      - "3100:3100"
+    command:
+      - -config.file=/etc/loki/local-config.yaml
+      - -validation.allow-structured-metadata=false  # Флаг командной строки
+    volumes:
+      - ./loki-config.yaml:/etc/loki/loki-config.yaml
+      - loki_data:/tmp/loki
+    networks:
+      - monitoring
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: cinema-promtail
+    volumes:
+      - /var/log:/var/log
+      - ./promtail/config.yaml:/etc/promtail/config.yaml
+      - //var/run/docker.sock:/var/run/docker.sock
+    command:
+      - -config.file=/etc/promtail/config.yaml
+      - -client.url=http://loki:3100/loki/api/v1/push
+    depends_on:
+      - loki
+    networks:
+      - monitoring
 
 volumes:
   reviews_data:
@@ -132,3 +209,12 @@ volumes:
   payments_data:
   notifications_data:
   movies_data:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+networks:
+  default:
+    name: cinema_default
+  monitoring:
+    driver: bridge

@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'users-service'
+    static_configs:
+      - targets: ['users-service:8000']
+    metrics_path: '/metrics'
+
+  - job_name: 'reviews-service'
+    static_configs:
+      - targets: ['reviews-service:8000']
+    metrics_path: '/metrics'
+
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'loki'
+    static_configs:
+      - targets: ['loki:3100']
+    metrics_path: '/metrics'
