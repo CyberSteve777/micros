@@ -2,8 +2,11 @@ import logging
 
 from fastapi import FastAPI, Request
 from prometheus_client import Counter, Histogram, make_asgi_app
+from starlette.responses import JSONResponse
+
 from .endpoints.user_router import user_router
 from .database import init_db
+from elasticsearch import Elasticsearch
 import time
 
 app = FastAPI(
@@ -31,12 +34,7 @@ APP_INFO = Counter(
 )
 APP_INFO.labels(app_name="users-service", version="1.1.0").inc(0)
 
-logging.basicConfig(
-    filename="app.log",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
-logger = logging.getLogger(__name__)
+es = Elasticsearch(hosts=["http://elasticsearch:9200"])
 
 @app.on_event("startup")
 def startup():
@@ -49,7 +47,16 @@ def health_check():
 @app.middleware("http")
 async def monitor_requests(request: Request, call_next):
     start_time = time.time()
-    response = await call_next(request)
+    body_bytes = await request.body()
+    try:
+        # Временно подменяем receive для передачи буфера дальше
+        async def receive():
+            return {"type": "http.request", "body": body_bytes, "more_body": False}
+
+        response = await call_next(Request(request.scope, receive))
+    except Exception:
+        logging.exception("Ошибка при обработке запроса")
+        response = JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
 
     route = request.scope.get("route")
     endpoint = route.path if route else request.url.path
@@ -65,14 +72,24 @@ async def monitor_requests(request: Request, call_next):
         status_code=str(response.status_code)
     ).inc()
 
+    # Elasticsearch
+    try:
+        es.index(
+            index="users-service-logs",
+            document={
+                "timestamp": time.time(),
+                "method": request.method,
+                "endpoint": endpoint,
+                "status_code": response.status_code,
+                "body": body_bytes.decode(errors="ignore")
+            }
+        )
+    except Exception as e:
+        # Не ломаем сервис, если Elasticsearch недоступен
+        logging.error(f"Ошибка отправки лога в Elasticsearch: {e}")
+
     return response
 
-async def log_requests(request: Request, call_next):
-    body = await request.body()  # опционально, если нужен payload
-    logger.info(f"Запрос: {request.method} {request.url.path} | Тело: {body.decode()}")
-    response = await call_next(request)
-    logger.info(f"Ответ: {response.status_code} для {request.method} {request.url.path}")
-    return response
 
 app.include_router(user_router, prefix="/api")
 

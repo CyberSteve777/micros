@@ -1,0 +1,8 @@
+filebeat.inputs:
+- type: log
+  enabled: true
+  paths:
+    - /var/log/app.log   # путь внутри контейнера users-service
+
+output.elasticsearch:
+  hosts: ["http://elasticsearch:9200"]
