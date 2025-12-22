@@ -35,7 +35,7 @@ jobs:
         context: ./micros/notifications_service
         push: ${{ github.event_name == 'push' }}
         tags: |
-          ${{ secrets.DOCKERHUB_USERNAME }}/users-service:latest
-          ${{ secrets.DOCKERHUB_USERNAME }}/users-service:${{ github.sha }}
+          ${{ secrets.DOCKERHUB_USERNAME }}/notifications-service:latest
+          ${{ secrets.DOCKERHUB_USERNAME }}/notifications-service:${{ github.sha }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
