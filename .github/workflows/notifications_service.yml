@@ -32,7 +32,7 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v4
       with:
-        context: ./micros/users_service
+        context: ./micros/notifications_service
         push: ${{ github.event_name == 'push' }}
         tags: |
           ${{ secrets.DOCKERHUB_USERNAME }}/users-service:latest
