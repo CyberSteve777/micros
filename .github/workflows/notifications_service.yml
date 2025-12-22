@@ -1,4 +1,4 @@
-name: Users service CI/CD V2
+name: Notifications service CI/CD V2
 
 on:
   push:
