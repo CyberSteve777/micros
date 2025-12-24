@@ -3,14 +3,14 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'users-service'
+  - job_name: 'notifications-service'
     static_configs:
-      - targets: ['users-service:8000']
+      - targets: ['notifications-service:8000']
     metrics_path: '/metrics'
 
-  - job_name: 'reviews-service'
+  - job_name: 'bonuses-service'
     static_configs:
-      - targets: ['reviews-service:8000']
+      - targets: ['bonuses-service:8000']
     metrics_path: '/metrics'
 
   - job_name: 'prometheus'

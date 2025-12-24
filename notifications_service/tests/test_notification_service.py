@@ -16,8 +16,7 @@ def mock_notification_repo():
 
 @pytest.fixture
 def notification_service(mock_notification_repo):
-    service = NotificationService()
-    service.notification_repo = mock_notification_repo
+    service = NotificationService(repo=mock_notification_repo)
     return service
 
 

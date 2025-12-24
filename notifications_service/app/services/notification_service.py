@@ -1,5 +1,6 @@
 from uuid import UUID, uuid4
 from datetime import datetime
+from fastapi import Depends
 from ..models.notification import (
     Notification, NotificationType,
     ReceiptRequest, TriggerRequest,
@@ -9,8 +10,8 @@ from ..repositories.db_notification_repo import NotificationRepo
 
 
 class NotificationService:
-    def __init__(self, repo: NotificationRepo | None = None):
-        self.notification_repo = repo or NotificationRepo()
+    def __init__(self, repo: NotificationRepo = Depends(NotificationRepo)):
+        self.notification_repo = repo
 
     def send_receipt(self, request: ReceiptRequest) -> NotificationResponse:
         notification = Notification(

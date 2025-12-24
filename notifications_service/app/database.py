@@ -1,6 +1,5 @@
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://cinema_user:cinema_password@localhost:5432/notifications_db")
@@ -17,5 +16,6 @@ def get_db():
         db.close()
 
 def init_db():
-    from .schemas.notification import Notification
+    # Import schemas to ensure they are registered with Base
+    from .schemas import notification
     Base.metadata.create_all(bind=engine)

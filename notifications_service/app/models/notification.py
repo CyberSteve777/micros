@@ -1,11 +1,11 @@
 from uuid import UUID
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Dict, Any
 import enum
 
 
-class NotificationType(str, enum.Enum):  # <- наследуем от str!
+class NotificationType(str, enum.Enum):
     RECEIPT = "receipt"
     SESSION_REMINDER = "session_reminder"
     PAYMENT_SUCCESS = "payment_success"
@@ -23,6 +23,8 @@ class Notification(BaseModel):
     sent_at: datetime
     status: str
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ReceiptRequest(BaseModel):
     order_id: str
@@ -39,8 +41,9 @@ class NotificationResponse(BaseModel):
     message: str
     notification_id: UUID
 
-    class Config:
-        json_encoders = {UUID: str}  # <- UUID будет сериализоваться в str
+    model_config = ConfigDict(
+        json_encoders={UUID: str}
+    )
 
 
 class TriggerResponse(BaseModel):
@@ -48,5 +51,6 @@ class TriggerResponse(BaseModel):
     user_id: UUID
     data: Dict[str, Any]
 
-    class Config:
-        json_encoders = {UUID: str}
+    model_config = ConfigDict(
+        json_encoders={UUID: str}
+    )
